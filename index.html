@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+  <style>
+    @keyframes canvasIn {
+      0% { opacity: 0; }
+      100% { opacity: 1; }
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    canvas, div {
+      margin-left: auto;
+      margin-right: auto;
+      margin-top: 10px;
+      text-align: center;
+    }
+    canvas {
+      display: none;
+      animation-name: canvasIn;
+      animation-duration: .4s;
+    }
+    input {
+      padding: 10px 8px;
+      border: 1px solid gray;
+      margin: 2px;
+    }
+    .func {
+      width: 500px;
+      height: 200px;
+      font-size: 12px;
+      font-family: Consolas;
+      color: #535353;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="chart"></canvas>
+  <div>
+
+    <label for="from">min x:</label>
+    <input type="text" id="from" value="300" placeholder="from:">
+
+    <label for="to">max x:</label>
+    <input type="text" id="to" value="600" placeholder="to:">
+
+    <label for="speed">draw speed:</label>
+    <input type="text" id="speed" value="10" placeholder="speed:">
+
+    <label for="accuracy">increment:</label>
+    <input type="text" id="accuracy" value="1.12354" placeholder="accuracy:">
+
+    <script>document.getElementById('to').value = window.innerWidth;</script>
+    <button id="go">DRAW</button>
+    <br />
+<textarea class="func" id="eqX">
+function(x) {
+
+  if (!window.phase) { window.phase=0 }
+  else { phase += Math.PI / 10 }
+
+  var r = 0.5 * x
+  return r * Math.cos(2 * Math.PI * x + phase)
++ 1000
+}
+
+  </textarea>
+<textarea class="func" id="eqY">
+function(y) {
+  if (!window.phase) { window.phase=0 }
+  var r = 0.5 * y
+  return r * Math.sin(2 * Math.PI * y + phase)
+}
+
+</textarea>
+  </div>
+
+  <script>
+!(function() {
+
+let $from, $to, $go, $eq, $speed, $accuracy
+
+var start = null;
+var data = null;
+var dataIndex = 0;
+var startX = 0;
+var startY = 0;
+var max = 0;
+
+const W = window.innerWidth
+const H = window.innerHeight / 1.5
+
+/* setup canvas */
+const c = document.getElementById('chart')
+c.setAttribute('width', W)
+c.setAttribute('height', H)
+c.style.display = 'block'
+
+/* get canvas context to draw on */
+const ctx = c.getContext('2d')
+
+
+/* translate x */
+function x(value) { return value }
+/* translate y */
+function y(value) { return (value - (H / 2)) * -1 }
+
+/**
+ * Clear canvas and draw X axis
+ */
+function initDrawBase() {
+  ctx.beginPath()
+  ctx.clearRect(0, 0, c.width, c.height)
+
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0, 0, c.width, c.height);
+
+  /* draw x - 0 axis */
+  ctx.beginPath()
+  ctx.moveTo(x(0), y(0))
+  ctx.lineTo(x(W), y(0))
+  ctx.lineWidth = "1";
+  ctx.strokeStyle = 'rgb(100, 100, 100)'
+  ctx.stroke()
+  ctx.closePath()
+
+  /* move back to 0, 0 */
+  ctx.moveTo(x(startX), y(startY))
+}
+
+function draw() {
+  const dots = getDots(parseFloat($from.value), parseFloat($to.value), window._fff, window._fffx)
+  max = dots.reduce(function(prev, curr, max) {
+    if (curr.y > prev) return curr.y
+    else return prev
+  }, 0)
+  drawTick(dots)
+}
+
+function drawTick(dots) {
+  data = dots
+  dataIndex = 0
+  window.requestAnimationFrame(tick)
+}
+
+function tick(timestamp) {
+  drawLines(parseInt($speed.value))
+  if (dataIndex < data.length)
+    window.requestAnimationFrame(tick);
+}
+
+function drawLines(countToDrawPerFrame) {
+  for (let i = 0; i < countToDrawPerFrame; i++)
+  {
+    let prev = data[dataIndex - 1]
+    if (!prev) prev = { y: startX, y: startY }
+    const curr = data[dataIndex]
+    if (curr) {
+      drawLine(prev, curr, max)
+      dataIndex++
+    }
+  }
+}
+
+
+function drawLine(prev, next, max) {
+  const coef = Math.abs(next.y) / max
+  const colorVal = coef * 255
+
+  ctx.beginPath()
+  ctx.lineWidth = "2";
+  ctx.strokeStyle = 'rgba(0, ' + parseInt(colorVal)  + ', '+parseInt(colorVal)+', 0.2)'
+  ctx.moveTo(x(prev.x), y(prev.y))
+  ctx.lineTo(x(next.x), y(next.y))
+  ctx.stroke()
+  ctx.closePath()
+}
+
+function getDots(from, to, func, funcx) {
+  const arr = []
+  const accuracy = parseFloat($accuracy.value)
+  for (let i = from; i <= to; i = i + accuracy) {
+    arr.push({ x: funcx(i), y: func(i) })
+  }
+  return arr
+}
+
+function fieldsKeyupHandler(e) {
+  if (e.which === 13 || e.keyCode === 13)
+      $go.click()
+}
+
+function textareaKeydownHandler(e) {
+  if (e.which === 13 || e.keyCode === 13)
+    e.preventDefault()
+}
+
+function drawGraph() {
+  eval('window._fff = ' + $eq.value)
+  eval('window._fffx = '+ $eqX.value)
+  const x = parseFloat($from.value)
+  startX = window._fffx(x)
+  startY = window._fff(x)
+  initDrawBase()
+  draw()
+}
+
+function onLoaded() {
+  $from =     document.getElementById('from')
+  $to =       document.getElementById('to')
+  $go =       document.getElementById('go')
+  $eqX =      document.getElementById('eqX')
+  $eq =       document.getElementById('eqY')
+  $speed =    document.getElementById('speed')
+  $accuracy =  document.getElementById('accuracy')
+
+  $go.addEventListener('click', drawGraph)
+
+  $from     .addEventListener('keyup', fieldsKeyupHandler)
+  $to       .addEventListener('keyup', fieldsKeyupHandler)
+  $eqX       .addEventListener('keyup', fieldsKeyupHandler)
+  $eq       .addEventListener('keyup', fieldsKeyupHandler)
+  $speed    .addEventListener('keyup', fieldsKeyupHandler)
+  $accuracy .addEventListener('keyup', fieldsKeyupHandler)
+  // $eq   .addEventListener('keydown', textareaKeydownHandler)
+
+  drawGraph()
+}
+
+document.addEventListener('DOMContentLoaded', onLoaded)
+})();
+
+  </script>
+</body>
+</html>
