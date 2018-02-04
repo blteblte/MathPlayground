@@ -45,6 +45,13 @@
   <canvas id="chart"></canvas>
   <div>
 
+    <label for="startp">start from:</label>
+    <select id="startp">
+      <option value="left">left</option>
+      <option value="center" selected="selected">center</option>
+      <option value="right">right</option>
+    </select>
+
     <label for="from">min x:</label>
     <input type="text" id="from" value="300" placeholder="from:">
 
@@ -68,7 +75,6 @@ function(x) {
 
   var r = 0.5 * x
   return r * Math.cos(2 * Math.PI * x + phase)
-+ 1000
 }
 
   </textarea>
@@ -85,7 +91,7 @@ function(y) {
   <script>
 !(function() {
 
-let $from, $to, $go, $eq, $speed, $accuracy
+let $from, $to, $go, $eq, $speed, $accuracy, $startp
 
 var start = null;
 var data = null;
@@ -127,8 +133,14 @@ function initDrawBase() {
   ctx.moveTo(x(0), y(0))
   ctx.lineTo(x(W), y(0))
   ctx.lineWidth = "1";
-  ctx.strokeStyle = 'rgb(100, 100, 100)'
+  ctx.strokeStyle = 'rgb(50, 50, 50)'
   ctx.stroke()
+
+  const yAxisXstart = getXStartPointModifier()
+  ctx.moveTo(x(0) + yAxisXstart, 0)
+  ctx.lineTo(x(0) + yAxisXstart, H)
+  ctx.stroke()
+
   ctx.closePath()
 
   /* move back to 0, 0 */
@@ -171,12 +183,20 @@ function drawLines(countToDrawPerFrame) {
 
 
 function drawLine(prev, next, max) {
-  const coef = Math.abs(next.y) / max
-  const colorVal = coef * 255
 
   ctx.beginPath()
   ctx.lineWidth = "2";
-  ctx.strokeStyle = 'rgba(0, ' + parseInt(colorVal)  + ', '+parseInt(colorVal)+', 0.2)'
+
+  const coef = Math.abs(next.y) / max
+  let colorVal = coef * 255 + 50
+  if (colorVal > 255) colorVal = 255
+
+  const r = 50
+  const g = parseInt(colorVal)
+  const b = parseInt(colorVal)
+  const alpha = 0.4
+  ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`
+
   ctx.moveTo(x(prev.x), y(prev.y))
   ctx.lineTo(x(next.x), y(next.y))
   ctx.stroke()
@@ -184,10 +204,11 @@ function drawLine(prev, next, max) {
 }
 
 function getDots(from, to, func, funcx) {
+  const xStartPointModifier = getXStartPointModifier()
   const arr = []
   const accuracy = parseFloat($accuracy.value)
   for (let i = from; i <= to; i = i + accuracy) {
-    arr.push({ x: funcx(i), y: func(i) })
+    arr.push({ x: funcx(i) + xStartPointModifier, y: func(i) })
   }
   return arr
 }
@@ -195,6 +216,10 @@ function getDots(from, to, func, funcx) {
 function fieldsKeyupHandler(e) {
   if (e.which === 13 || e.keyCode === 13)
       $go.click()
+}
+
+function fieldsChangeHandler(e) {
+  $go.click()
 }
 
 function textareaKeydownHandler(e) {
@@ -212,6 +237,20 @@ function drawGraph() {
   draw()
 }
 
+function getXStartPointModifier() {
+  const val = $startp.value
+  let result = 0
+  switch(val) {
+    case 'left': result = 0
+      break;
+    case 'right': result = W
+      break;
+    case 'center': result = W / 2
+      break;
+  }
+  return result
+}
+
 function onLoaded() {
   $from =     document.getElementById('from')
   $to =       document.getElementById('to')
@@ -220,6 +259,7 @@ function onLoaded() {
   $eq =       document.getElementById('eqY')
   $speed =    document.getElementById('speed')
   $accuracy =  document.getElementById('accuracy')
+  $startp =   document.getElementById('startp')
 
   $go.addEventListener('click', drawGraph)
 
@@ -229,6 +269,8 @@ function onLoaded() {
   $eq       .addEventListener('keyup', fieldsKeyupHandler)
   $speed    .addEventListener('keyup', fieldsKeyupHandler)
   $accuracy .addEventListener('keyup', fieldsKeyupHandler)
+
+  $startp   .addEventListener('change', fieldsChangeHandler)
   // $eq   .addEventListener('keydown', textareaKeydownHandler)
 
   drawGraph()
