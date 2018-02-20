@@ -64,6 +64,11 @@
     <label for="accuracy">increment:</label>
     <input type="text" id="accuracy" value="1.12354" placeholder="accuracy:">
 
+    <select id="color-mode">
+      <option value="0" selected="selected">Dynamic</option>
+      <option value="1">Static</option>
+    </select>
+
     <script>document.getElementById('to').value = window.innerWidth;</script>
     <button id="go">DRAW</button>
     <br />
@@ -91,7 +96,7 @@ function(y) {
   <script>
 !(function() {
 
-let $from, $to, $go, $eq, $speed, $accuracy, $startp
+let $from, $to, $go, $eq, $speed, $accuracy, $startp, $colorMode
 
 var start = null;
 var data = null;
@@ -187,15 +192,21 @@ function drawLine(prev, next, max) {
   ctx.beginPath()
   ctx.lineWidth = "2";
 
-  const coef = Math.abs(next.y) / max
-  let colorVal = coef * 255 + 50
-  if (colorVal > 255) colorVal = 255
+  var selectedColorMode = $colorMode.selectedIndex
 
-  const r = 50
-  const g = parseInt(colorVal)
-  const b = parseInt(colorVal)
-  const alpha = 0.4
-  ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`
+  if (selectedColorMode === 0) {
+    const coef = Math.abs(next.y) / max
+    let colorVal = coef * 255 + 50
+    if (colorVal > 255) colorVal = 255
+
+    const r = 50
+    const g = parseInt(colorVal)
+    const b = parseInt(colorVal)
+    const alpha = 0.4
+    ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`
+  } else {
+    ctx.strokeStyle = 'rgba(255, 255, 255, .4)'
+  }
 
   ctx.moveTo(x(prev.x), y(prev.y))
   ctx.lineTo(x(next.x), y(next.y))
@@ -272,6 +283,8 @@ function onLoaded() {
 
   $startp   .addEventListener('change', fieldsChangeHandler)
   // $eq   .addEventListener('keydown', textareaKeydownHandler)
+
+  $colorMode = document.getElementById('color-mode')
 
   drawGraph()
 }
