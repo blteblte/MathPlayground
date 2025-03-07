@@ -16,10 +16,9 @@
       padding: 0;
     }
 
-    canvas, div {
+    canvas, .actions {
       margin-left: auto;
       margin-right: auto;
-      margin-top: 10px;
       text-align: center;
     }
     canvas {
@@ -39,64 +38,107 @@
       font-family: Consolas;
       color: #535353;
     }
+    .actions, input, select, textarea, button {
+      background-color: rgba(0, 0, 0, .2);
+      color: #fff;
+    }
+
+    .actions {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+    }
+
+    .actions.collapsed .func {
+      display: none;
+    }
+
+    .actions.collapsed .view-button {
+      display: block;
+      transform: rotate(180deg);
+    }
+
+    .actions .view-button {
+      margin-right: 8px;
+    }
+
+    .actions .controlls {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    a {
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
   <canvas id="chart"></canvas>
-  <div>
+  <div class="actions collapsed">
+    <div class="controlls">
+      <a class="view-button" onclick="toggleView()">↓</a>
 
-    <label for="startp">start from:</label>
-    <select id="startp">
-      <option value="left">left</option>
-      <option value="center" selected="selected">center</option>
-      <option value="right">right</option>
-    </select>
+      <label for="startp">start from:</label>
+      <select id="startp">
+        <option value="left">left</option>
+        <option value="center" selected="selected">center</option>
+        <option value="right">right</option>
+      </select>
 
-    <label for="from">min x:</label>
-    <input type="text" id="from" value="300" placeholder="from:">
+      <label for="from">min x:</label>
+      <input type="text" id="from" value="300" placeholder="from:">
 
-    <label for="to">max x:</label>
-    <input type="text" id="to" value="600" placeholder="to:">
+      <label for="to">max x:</label>
+      <input type="text" id="to" value="600" placeholder="to:">
 
-    <label for="speed">draw speed:</label>
-    <input type="text" id="speed" value="10" placeholder="speed:">
+      <label for="speed">draw speed:</label>
+      <input type="text" id="speed" value="10" placeholder="speed:">
 
-    <label for="accuracy">increment:</label>
-    <input type="text" id="accuracy" value="1.12354" placeholder="accuracy:">
+      <label for="accuracy">increment:</label>
+      <input type="text" id="accuracy" value="1.12354" placeholder="accuracy:">
 
-    <select id="color-mode">
-      <option value="0" selected="selected">Dynamic</option>
-      <option value="1">Static</option>
-    </select>
+      <select id="color-mode">
+        <option value="0" selected="selected">Dynamic</option>
+        <option value="1">Static</option>
+      </select>
 
-    <script>document.getElementById('to').value = window.innerWidth;</script>
-    <button id="go">DRAW</button>
-    <br />
+      <script>document.getElementById('to').value = window.innerWidth;</script>
+      <button id="go">DRAW</button>
+      <button id="rand">RANDOM</button>
+    </div>
+    <div>
 <textarea class="func" id="eqX">
 function(x) {
-
   if (!window.phase) { window.phase=0 }
   else { phase += Math.PI / 10 }
-
   var r = 0.5 * x
   return r * Math.cos(2 * Math.PI * x + phase)
 }
-
-  </textarea>
+</textarea>
 <textarea class="func" id="eqY">
 function(y) {
   if (!window.phase) { window.phase=0 }
   var r = 0.5 * y
   return r * Math.sin(2 * Math.PI * y + phase)
 }
-
 </textarea>
+    </div>
   </div>
-
   <script>
+function toggleView() {
+  const c = document.querySelector('.actions');
+    if (c.classList.contains('collapsed'))
+      c.classList.remove('collapsed');
+    else
+      c.classList.add('collapsed');
+}
+
+
 !(function() {
 
-let $from, $to, $go, $eq, $speed, $accuracy, $startp, $colorMode
+let $from, $to, $go, $eq, $speed, $accuracy, $startp, $colorMode, $rand
 
 var start = null;
 var data = null;
@@ -106,7 +148,7 @@ var startY = 0;
 var max = 0;
 
 const W = window.innerWidth
-const H = window.innerHeight / 1.5
+const H = window.innerHeight
 
 /* setup canvas */
 const c = document.getElementById('chart')
@@ -195,13 +237,21 @@ function drawLine(prev, next, max) {
   var selectedColorMode = $colorMode.selectedIndex
 
   if (selectedColorMode === 0) {
-    const coef = Math.abs(next.y) / max
-    let colorVal = coef * 255 + 50
-    if (colorVal > 255) colorVal = 255
+    const coef0 = Math.abs(next.y) / max *0.05
+    let colorVal0 = coef0 * 255 + 50
+    if (colorVal0 > 255) colorVal0 = 255
 
-    const r = 50
-    const g = parseInt(colorVal)
-    const b = parseInt(colorVal)
+    const coef1 = Math.abs(next.y) / max
+    let colorVal1 = coef1 * 255 + 50
+    if (colorVal1 > 255) colorVal1 = 255
+
+    const coef2 = Math.abs(next.x) / max
+    let colorVal2 = coef2 * 255 + 50
+    if (colorVal2 > 255) colorVal2 = 255
+
+    const r = parseInt(colorVal0)
+    const g = parseInt(colorVal1)
+    const b = parseInt(colorVal2)
     const alpha = 0.4
     ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`
   } else {
@@ -248,6 +298,15 @@ function drawGraph() {
   draw()
 }
 
+function getRandomInt(max) {
+  return Math.floor(Math.random() * max);
+}
+
+function randDraw() {
+  $accuracy.value = getRandomInt(9) + Math.random();
+  drawGraph();
+}
+
 function getXStartPointModifier() {
   const val = $startp.value
   let result = 0
@@ -266,6 +325,7 @@ function onLoaded() {
   $from =     document.getElementById('from')
   $to =       document.getElementById('to')
   $go =       document.getElementById('go')
+  $rand =     document.getElementById('rand')
   $eqX =      document.getElementById('eqX')
   $eq =       document.getElementById('eqY')
   $speed =    document.getElementById('speed')
@@ -273,16 +333,14 @@ function onLoaded() {
   $startp =   document.getElementById('startp')
 
   $go.addEventListener('click', drawGraph)
+  $rand.addEventListener('click', randDraw)
 
   $from     .addEventListener('keyup', fieldsKeyupHandler)
   $to       .addEventListener('keyup', fieldsKeyupHandler)
-  $eqX       .addEventListener('keyup', fieldsKeyupHandler)
-  $eq       .addEventListener('keyup', fieldsKeyupHandler)
   $speed    .addEventListener('keyup', fieldsKeyupHandler)
   $accuracy .addEventListener('keyup', fieldsKeyupHandler)
 
   $startp   .addEventListener('change', fieldsChangeHandler)
-  // $eq   .addEventListener('keydown', textareaKeydownHandler)
 
   $colorMode = document.getElementById('color-mode')
 
