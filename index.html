@@ -228,6 +228,41 @@ function drawLines(countToDrawPerFrame) {
   }
 }
 
+function calcColor(percent, value, max) {
+    return (Math.abs(value) / max);
+}
+
+function getColor(percent, next, max) {
+    let coef0, coef1, coef2 = 0;
+
+    if (percent < 33.333333) {
+      coef0 = calcColor(percent, next.y, max);
+      coef1 = calcColor(percent, next.y, max);
+      coef2 = calcColor(percent, next.x, max);
+    } else if (percent < 66.666666) {
+      coef0 = calcColor(percent, next.y, max);
+      coef1 = calcColor(percent, next.x, max);
+      coef2 = calcColor(percent, next.y, max);
+    } else {
+      coef0 = calcColor(percent, next.x, max);
+      coef1 = calcColor(percent, next.y, max);
+      coef2 = calcColor(percent, next.y, max);
+    }
+
+    /* Red */
+    let colorVal0 = coef0 * 255 + 50
+    if (colorVal0 > 255) colorVal0 = 255
+
+    /* Green */
+    let colorVal1 = coef1 * 255 + 50
+    if (colorVal1 > 255) colorVal1 = 255
+
+    /* Blue */
+    let colorVal2 = coef2 * 255 + 50
+    if (colorVal2 > 255) colorVal2 = 255
+
+    return { r: parseInt(colorVal0), g: parseInt(colorVal1), b: parseInt(colorVal2) };
+}
 
 function drawLine(prev, next, max) {
 
@@ -237,22 +272,9 @@ function drawLine(prev, next, max) {
   var selectedColorMode = $colorMode.selectedIndex
 
   if (selectedColorMode === 0) {
-    const coef0 = Math.abs(next.y) / max *0.05
-    let colorVal0 = coef0 * 255 + 50
-    if (colorVal0 > 255) colorVal0 = 255
-
-    const coef1 = Math.abs(next.y) / max
-    let colorVal1 = coef1 * 255 + 50
-    if (colorVal1 > 255) colorVal1 = 255
-
-    const coef2 = Math.abs(next.x) / max
-    let colorVal2 = coef2 * 255 + 50
-    if (colorVal2 > 255) colorVal2 = 255
-
-    const r = parseInt(colorVal0)
-    const g = parseInt(colorVal1)
-    const b = parseInt(colorVal2)
-    const alpha = 0.4
+    var progress = dataIndex / data.length;
+    const { r, g, b } = getColor(progress * 100, next, max);
+    const alpha = 0.4;
     ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`
   } else {
     ctx.strokeStyle = 'rgba(255, 255, 255, .4)'
